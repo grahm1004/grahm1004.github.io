@@ -3,37 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Element Defender · 프로필 포함</title>
-  <meta name="description" content="물·불·나무·땅 4속성 방어 게임 + 프로필 이미지" />
+  <title>Element Defender · 4속성 10단계 방어 게임</title>
+  <meta name="description" content="물·불·나무·땅 4속성으로 1~10 챕터까지 점점 어려워지는 방어 게임" />
   <style>
     :root{
       --bg:#0b0c0f;
       --fg:#e5e7eb;
       --muted:#9ca3af;
       --line:#1f2937;
-      --water:#38bdf8;
-      --fire:#ef4444;
-      --wood:#22c55e;
-      --earth:#facc15;
+      --water:#38bdf8; /* 하늘색 */
+      --fire:#ef4444; /* 빨강 */
+      --wood:#22c55e; /* 초록 */
+      --earth:#facc15; /* 노랑 */
     }
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,"Noto Sans KR";background:var(--bg);color:var(--fg);}
     .wrap{max-width:900px;margin:0 auto;padding:20px;text-align:center}
     canvas{background:radial-gradient(circle at center,rgba(255,255,255,.05),transparent 80%);border:1px solid var(--line);border-radius:8px;display:block;margin:0 auto}
     .btn{margin:6px;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:#111827;color:var(--fg);cursor:pointer;font-weight:600}
-    .guide{font-size:24px;font-weight:700;margin-top:16px;color:var(--muted);}
+    .guide{font-size:24px;font-weight:700;margin-top:16px;color:var(--muted);min-height:32px}
     .footer{color:var(--muted);font-size:13px;margin-top:12px}
-    .profile{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:24px;}
-    .profile img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--line);}
-    .profile h2{margin:0;font-size:20px;color:var(--fg);}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="profile">
-      <img src="image/코끼리 이미지2.jpg" alt="프로필 이미지" />
-      <h2>오종환</h2>
-    </div>
-
     <h1>Element Defender 💧🔥🌳🪨</h1>
     <p>물 · 불 · 나무 · 땅 4속성을 이용해 타워를 지켜라!<br>챕터 1부터 10까지 점점 어려워지는 난이도!</p>
     <div class="guide">Q → 💧 물  W → 🔥 불  E → 🌳 나무  R → 🪨 땅</div>
@@ -44,14 +36,21 @@
       <button class="btn" id="nextBtn" disabled>다음 챕터</button>
       <button class="btn" id="restartBtn">다시하기</button>
     </div>
-    <div class="footer">각 속성은 자기 자신의 공격을 막습니다 (물은 물로, 불은 불로, 나무는 나무로, 땅은 땅으로 방어)</div>
+    <div class="footer">룰: <b>가운데 원</b>에 닿기 전에, <b>같은 속성(Q/W/E/R)</b>을 눌러 <b>방어 링</b> 안의 가장 가까운 투사체 <b>1개만</b> 제거합니다. 틀리게 누르면 HP가 감소합니다.</div>
   </div>
 
   <script>
   ;(()=>{
     const cvs=document.getElementById('game');
     const ctx=cvs.getContext('2d');
+
+    // 중앙/반경 설정
     const CENTER={x:cvs.width/2,y:cvs.height/2};
+    const TOWER_RADIUS=20;           // 가운데 원(타워)
+    const DEFENSE_RADIUS=120;        // 방어 가능 링(여기 안쪽의 가장 가까운 1개만 제거)
+    const WRONG_PENALTY=5;           // 오입력 패널티 HP 감소
+
+    // 속성/색상(QWER)
     const elements=[
       {key:'water',label:'물',color:getComputedStyle(document.documentElement).getPropertyValue('--water').trim(),keyBind:'q'},
       {key:'fire',label:'불',color:getComputedStyle(document.documentElement).getPropertyValue('--fire').trim(),keyBind:'w'},
@@ -61,10 +60,22 @@
 
     let chapter=1,maxChapter=10,hp=100,projectiles=[],running=false;
 
-    function resetGame(){projectiles=[];hp=100;running=false;chapter=1;document.getElementById('nextBtn').disabled=true;render();}
+    function resetGame(){
+      projectiles=[];hp=100;running=false;chapter=1;
+      document.getElementById('nextBtn').disabled=true;
+      setGuideDefault();
+      render();
+    }
+
     function startChapter(){running=true;spawnLoop();}
 
-    function spawnLoop(){if(!running)return;spawnProjectile();const interval=Math.max(1600-120*chapter,900);setTimeout(spawnLoop,interval);}
+    function spawnLoop(){
+      if(!running) return;
+      spawnProjectile();
+      // 챕터별 스폰 간격(느리게 시작해 점진적 증가)
+      const interval=Math.max(1600-120*chapter,900);
+      setTimeout(spawnLoop, interval);
+    }
 
     function spawnProjectile(){
       const el=elements[Math.floor(Math.random()*elements.length)];
@@ -72,29 +83,105 @@
       const radius=Math.max(cvs.width,cvs.height)/2+20;
       const x=CENTER.x+Math.cos(angle)*radius;
       const y=CENTER.y+Math.sin(angle)*radius;
-      const speed=0.6+chapter*0.15;
+      const speed=0.6+chapter*0.15; // 챕터로 점진 증가
       const dx=(CENTER.x-x)/Math.hypot(CENTER.x-x,CENTER.y-y)*speed;
       const dy=(CENTER.y-y)/Math.hypot(CENTER.x-x,CENTER.y-y)*speed;
       projectiles.push({x,y,dx,dy,color:el.color,type:el.key});
     }
 
-    function update(){if(!running)return;projectiles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;});projectiles=projectiles.filter(p=>!isHit(p));if(hp<=0){running=false;document.getElementById('nextBtn').disabled=false;}}
+    function update(){
+      if(!running) return;
+      // 이동
+      for(const p of projectiles){ p.x+=p.dx; p.y+=p.dy; }
+      // 타워 피격 체크
+      projectiles = projectiles.filter(p=>{
+        const dist = Math.hypot(p.x-CENTER.x, p.y-CENTER.y);
+        if(dist < TOWER_RADIUS){ hp=Math.max(0, hp-10); return false; }
+        return true;
+      });
+      if(hp<=0){ running=false; document.getElementById('nextBtn').disabled=false; setGuideMsg('게임오버 - Space로 재시작'); }
+    }
 
-    function isHit(p){const dist=Math.hypot(p.x-CENTER.x,p.y-CENTER.y);if(dist<20){hp=Math.max(0,hp-10);return true;}return false;}
+    function render(){
+      ctx.clearRect(0,0,cvs.width,cvs.height);
+      // 방어 링(가이드)
+      ctx.save();
+      ctx.setLineDash([6,8]);
+      ctx.strokeStyle='rgba(255,255,255,.18)';
+      ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, DEFENSE_RADIUS, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
 
-    function render(){ctx.clearRect(0,0,cvs.width,cvs.height);ctx.beginPath();ctx.arc(CENTER.x,CENTER.y,20,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();projectiles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();});ctx.fillStyle='white';ctx.font='16px system-ui';ctx.fillText(`챕터 ${chapter} / ${maxChapter}`,20,20);ctx.fillText(`HP: ${hp}`,20,40);}
+      // 타워(가운데 원)
+      ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, TOWER_RADIUS, 0, Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
 
-    function loop(){update();render();requestAnimationFrame(loop);}loop();
+      // 투사체
+      for(const p of projectiles){
+        ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2);
+        ctx.fillStyle=p.color; ctx.fill();
+      }
 
-    document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['q','w','e','r'].includes(k)){const el=elements.find(el=>el.keyBind===k);if(el){defend(el.key);flashKey(el.label);}}});
+      // HUD
+      ctx.fillStyle='white'; ctx.font='16px system-ui';
+      ctx.fillText(`챕터 ${chapter} / ${maxChapter}`, 20, 20);
+      ctx.fillText(`HP: ${hp}`, 20, 40);
+    }
 
-    function defend(type){projectiles.forEach(p=>{const dist=Math.hypot(p.x-CENTER.x,p.y-CENTER.y);if(dist<80 && p.type===type){p.x=-9999;}});}
+    function loop(){ update(); render(); requestAnimationFrame(loop); } loop();
 
-    function flashKey(label){const g=document.querySelector('.guide');g.textContent=`${label} 방어!`;setTimeout(()=>{g.innerHTML='Q → 💧 물  W → 🔥 불  E → 🌳 나무  R → 🪨 땅';},600);}
+    // === 입력: Q/W/E/R ===
+    document.addEventListener('keydown', e=>{
+      const k=e.key.toLowerCase();
+      if(['q','w','e','r'].includes(k)){
+        const el=elements.find(el=>el.keyBind===k);
+        if(el){ defend(el.key); flashKey(el.label); }
+      }
+    });
 
-    document.getElementById('startBtn').onclick=()=>{running=true;startChapter();};
-    document.getElementById('restartBtn').onclick=()=>{resetGame();};
-    document.getElementById('nextBtn').onclick=()=>{if(chapter<maxChapter){chapter++;running=true;projectiles=[];hp=100;startChapter();if(chapter===maxChapter)document.getElementById('nextBtn').disabled=true;}};
+    // 같은 속성 1개만 제거(방어 링 안에서 가장 가까운 것)
+    function defend(type){
+      let nearestIdx=-1, nearestDist=Infinity;
+      for(let i=0;i<projectiles.length;i++){
+        const p=projectiles[i];
+        if(p.type!==type) continue;
+        const dist=Math.hypot(p.x-CENTER.x, p.y-CENTER.y);
+        if(dist> TOWER_RADIUS && dist<= DEFENSE_RADIUS && dist < nearestDist){
+          nearestDist=dist; nearestIdx=i;
+        }
+      }
+      if(nearestIdx>=0){
+        // 성공: 해당 1개만 제거
+        projectiles.splice(nearestIdx,1);
+        setGuideMsg('방어 성공!');
+      } else {
+        // 실패: 오입력 패널티
+        hp = Math.max(0, hp - WRONG_PENALTY);
+        setGuideMsg(`오입력 - HP -${WRONG_PENALTY}`);
+        if(hp<=0){ running=false; document.getElementById('nextBtn').disabled=false; }
+      }
+    }
+
+    // 가이드 메시지 표시
+    function setGuideMsg(msg){
+      const g=document.querySelector('.guide');
+      g.textContent=msg;
+      clearTimeout(setGuideMsg._t);
+      setGuideMsg._t=setTimeout(setGuideDefault, 800);
+    }
+    function setGuideDefault(){
+      document.querySelector('.guide').innerHTML='Q → 💧 물  W → 🔥 불  E → 🌳 나무  R → 🪨 땅';
+    }
+
+    // 버튼 바인딩
+    document.getElementById('startBtn').onclick=()=>{ running=true; startChapter(); };
+    document.getElementById('restartBtn').onclick=()=>{ resetGame(); };
+    document.getElementById('nextBtn').onclick=()=>{
+      if(chapter<maxChapter){
+        chapter++;
+        running=true; projectiles=[]; hp=100; startChapter();
+        if(chapter===maxChapter) document.getElementById('nextBtn').disabled=true;
+      }
+    };
   })();
   </script>
 </body>
