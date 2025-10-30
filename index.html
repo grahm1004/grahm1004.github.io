@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Element Defender · 4속성 10단계 방어 게임</title>
-  <meta name="description" content="물·불·나무·땅 4속성으로 1~10 챕터까지 점점 어려워지는 방어 게임" />
+  <title>Element Defender · 프로필 포함</title>
+  <meta name="description" content="물·불·나무·땅 4속성 방어 게임 + 프로필 이미지" />
   <style>
     :root{
       --bg:#0b0c0f;
       --fg:#e5e7eb;
       --muted:#9ca3af;
       --line:#1f2937;
-      --water:#38bdf8; /* 하늘색 */
-      --fire:#ef4444; /* 빨강 */
-      --wood:#22c55e; /* 초록 */
-      --earth:#facc15; /* 더 선명한 노랑 (땅 이미지용) */
+      --water:#38bdf8;
+      --fire:#ef4444;
+      --wood:#22c55e;
+      --earth:#facc15;
     }
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,"Noto Sans KR";background:var(--bg);color:var(--fg);}
     .wrap{max-width:900px;margin:0 auto;padding:20px;text-align:center}
@@ -22,13 +22,22 @@
     .btn{margin:6px;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:#111827;color:var(--fg);cursor:pointer;font-weight:600}
     .guide{font-size:24px;font-weight:700;margin-top:16px;color:var(--muted);}
     .footer{color:var(--muted);font-size:13px;margin-top:12px}
+    .profile{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:24px;}
+    .profile img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--line);}
+    .profile h2{margin:0;font-size:20px;color:var(--fg);}
   </style>
 </head>
 <body>
   <div class="wrap">
+    <div class="profile">
+      <img src="image/코끼리 이미지2.jpg" alt="프로필 이미지" />
+      <h2>오종환</h2>
+    </div>
+
     <h1>Element Defender 💧🔥🌳🪨</h1>
     <p>물 · 불 · 나무 · 땅 4속성을 이용해 타워를 지켜라!<br>챕터 1부터 10까지 점점 어려워지는 난이도!</p>
     <div class="guide">Q → 💧 물  W → 🔥 불  E → 🌳 나무  R → 🪨 땅</div>
+
     <canvas id="game" width="640" height="480"></canvas>
     <div>
       <button class="btn" id="startBtn">게임 시작</button>
@@ -37,6 +46,7 @@
     </div>
     <div class="footer">각 속성은 자기 자신의 공격을 막습니다 (물은 물로, 불은 불로, 나무는 나무로, 땅은 땅으로 방어)</div>
   </div>
+
   <script>
   ;(()=>{
     const cvs=document.getElementById('game');
@@ -51,20 +61,10 @@
 
     let chapter=1,maxChapter=10,hp=100,projectiles=[],running=false;
 
-    function resetGame(){
-      projectiles=[];hp=100;running=false;chapter=1;
-      document.getElementById('nextBtn').disabled=true;
-      render();
-    }
-
+    function resetGame(){projectiles=[];hp=100;running=false;chapter=1;document.getElementById('nextBtn').disabled=true;render();}
     function startChapter(){running=true;spawnLoop();}
 
-    function spawnLoop(){
-      if(!running)return;
-      spawnProjectile();
-      const interval=Math.max(1600-120*chapter,900);
-      setTimeout(spawnLoop,interval);
-    }
+    function spawnLoop(){if(!running)return;spawnProjectile();const interval=Math.max(1600-120*chapter,900);setTimeout(spawnLoop,interval);}
 
     function spawnProjectile(){
       const el=elements[Math.floor(Math.random()*elements.length)];
@@ -78,66 +78,23 @@
       projectiles.push({x,y,dx,dy,color:el.color,type:el.key});
     }
 
-    function update(){
-      if(!running)return;
-      projectiles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;});
-      projectiles=projectiles.filter(p=>!isHit(p));
-      if(hp<=0){running=false;document.getElementById('nextBtn').disabled=false;}
-    }
+    function update(){if(!running)return;projectiles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;});projectiles=projectiles.filter(p=>!isHit(p));if(hp<=0){running=false;document.getElementById('nextBtn').disabled=false;}}
 
-    function isHit(p){
-      const dist=Math.hypot(p.x-CENTER.x,p.y-CENTER.y);
-      if(dist<20){hp=Math.max(0,hp-10);return true;}return false;
-    }
+    function isHit(p){const dist=Math.hypot(p.x-CENTER.x,p.y-CENTER.y);if(dist<20){hp=Math.max(0,hp-10);return true;}return false;}
 
-    function render(){
-      ctx.clearRect(0,0,cvs.width,cvs.height);
-      ctx.beginPath();ctx.arc(CENTER.x,CENTER.y,20,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
-      projectiles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();});
-      ctx.fillStyle='white';ctx.font='16px system-ui';ctx.fillText(`챕터 ${chapter} / ${maxChapter}`,20,20);
-      ctx.fillText(`HP: ${hp}`,20,40);
-    }
+    function render(){ctx.clearRect(0,0,cvs.width,cvs.height);ctx.beginPath();ctx.arc(CENTER.x,CENTER.y,20,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();projectiles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();});ctx.fillStyle='white';ctx.font='16px system-ui';ctx.fillText(`챕터 ${chapter} / ${maxChapter}`,20,20);ctx.fillText(`HP: ${hp}`,20,40);}
 
     function loop(){update();render();requestAnimationFrame(loop);}loop();
 
-    document.addEventListener('keydown',e=>{
-      const k=e.key.toLowerCase();
-      if(['q','w','e','r'].includes(k)){
-        const el=elements.find(el=>el.keyBind===k);
-        if(el){
-          defend(el.key);
-          flashKey(el.label);
-        }
-      }
-    });
+    document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['q','w','e','r'].includes(k)){const el=elements.find(el=>el.keyBind===k);if(el){defend(el.key);flashKey(el.label);}}});
 
-    function defend(type){
-      projectiles.forEach(p=>{
-        const dist=Math.hypot(p.x-CENTER.x,p.y-CENTER.y);
-        if(dist<80 && p.type===type){p.x=-9999;}
-      });
-    }
+    function defend(type){projectiles.forEach(p=>{const dist=Math.hypot(p.x-CENTER.x,p.y-CENTER.y);if(dist<80 && p.type===type){p.x=-9999;}});}
 
-    function flashKey(label){
-      const g=document.querySelector('.guide');
-      g.textContent=`${label} 방어!`;
-      setTimeout(()=>{
-        g.innerHTML='Q → 💧 물  W → 🔥 불  E → 🌳 나무  R → 🪨 땅';
-      },600);
-    }
+    function flashKey(label){const g=document.querySelector('.guide');g.textContent=`${label} 방어!`;setTimeout(()=>{g.innerHTML='Q → 💧 물  W → 🔥 불  E → 🌳 나무  R → 🪨 땅';},600);}
 
     document.getElementById('startBtn').onclick=()=>{running=true;startChapter();};
     document.getElementById('restartBtn').onclick=()=>{resetGame();};
-    document.getElementById('nextBtn').onclick=()=>{
-      if(chapter<maxChapter){
-        chapter++;
-        running=true;
-        projectiles=[];
-        hp=100;
-        startChapter();
-        if(chapter===maxChapter)document.getElementById('nextBtn').disabled=true;
-      }
-    };
+    document.getElementById('nextBtn').onclick=()=>{if(chapter<maxChapter){chapter++;running=true;projectiles=[];hp=100;startChapter();if(chapter===maxChapter)document.getElementById('nextBtn').disabled=true;}};
   })();
   </script>
 </body>
